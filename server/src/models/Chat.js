@@ -13,6 +13,13 @@ const messageSchema = new mongoose.Schema({
   timestamp: {
     type: Date,
     default: Date.now
+  },
+  mediaUrl: {
+    type: String
+  },
+  mediaType: {
+    type: String,
+    enum: ['image', 'video']
   }
 });
 

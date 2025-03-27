@@ -30,6 +30,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (userData: any) => Promise<void>;
   signOut: () => void;
+  updateUserData: (userData: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -180,12 +181,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  // Add method to update user data without requiring re-authentication
+  const updateUserData = (userData: Partial<User>) => {
+    if (!user) return;
+    
+    // Create updated user object by merging current user with new data
+    const updatedUser = { ...user, ...userData };
+    
+    // Update localStorage
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    
+    // Update state
+    setUser(updatedUser);
+  };
+
   const value = {
     user,
     loading,
     signIn,
     signUp,
     signOut,
+    updateUserData,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

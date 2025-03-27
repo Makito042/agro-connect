@@ -18,11 +18,15 @@ export const uploadProfilePicture = async (formData: FormData): Promise<ApiRespo
       throw new Error('Authentication token not found');
     }
 
+    // For multipart/form-data, let the browser set the Content-Type with boundary
+    // Explicitly setting Content-Type for multipart/form-data causes issues in Firefox
     const response = await axios.post(`${API_BASE_URL}/auth/profile-picture`, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
-        Authorization: `Bearer ${token}`,
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
       },
+      withCredentials: true
     });
 
     // Ensure we have the profile picture data in the response

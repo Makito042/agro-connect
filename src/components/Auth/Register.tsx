@@ -111,7 +111,8 @@ export default function Register() {
       };
 
       await signUp(userData);
-      navigate('/registration-success');
+      // Redirect directly to signin page instead of registration success page
+      navigate('/signin');
     } catch (err: any) {
       setError(err.message || 'An error occurred during registration');
     } finally {

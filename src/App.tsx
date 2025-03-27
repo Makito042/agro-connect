@@ -5,7 +5,10 @@ import {
   LogOut,
   MessageSquare,
   Users,
-  Layout
+  Layout,
+  UserPlus,
+  UserCheck,
+  Search
 } from 'lucide-react';
 import { BrowserRouter, Link, Routes, Route, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -15,6 +18,14 @@ import Forum from './components/Forum';
 import SignIn from './components/Auth/SignIn';
 import Register from './components/Auth/Register';
 import Profile from './components/Auth/Profile';
+import ChatList from './components/Chat/ChatList';
+import Chat from './components/Chat/Chat';
+import NewChat from './components/Chat/NewChat';
+import MessageRequests from './components/Chat/MessageRequests';
+import FriendList from './components/Friends/FriendList';
+import FriendRequests from './components/Friends/FriendRequests';
+import FindFriends from './components/Friends/FindFriends';
+import UserProfile from './components/Friends/UserProfile';
 
 function App() {
   const Navigation = () => {
@@ -68,6 +79,22 @@ function App() {
                         Chats
                       </Link>
                       <Link
+                        to="/friends"
+                        className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsProfileOpen(false)}
+                      >
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Friends
+                      </Link>
+                      <Link
+                        to="/friend-requests"
+                        className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsProfileOpen(false)}
+                      >
+                        <UserCheck className="w-4 h-4 mr-2" />
+                        Friend Requests
+                      </Link>
+                      <Link
                         to="/channels"
                         className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
                         onClick={() => setIsProfileOpen(false)}
@@ -117,6 +144,14 @@ function App() {
             <Route path="/signin" element={<SignIn />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/chats" element={<ChatList />} />
+            <Route path="/chat/:chatId" element={<Chat />} />
+            <Route path="/new-chat" element={<NewChat />} />
+            <Route path="/message-requests" element={<MessageRequests />} />
+            <Route path="/friends" element={<FriendList />} />
+            <Route path="/friend-requests" element={<FriendRequests />} />
+            <Route path="/find-friends" element={<FindFriends />} />
+            <Route path="/user-profile/:userId" element={<UserProfile />} />
           </Routes>
 
           {/* Footer */}

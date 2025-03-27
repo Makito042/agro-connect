@@ -27,7 +27,7 @@ interface ProfileData {
 }
 
 export default function Profile() {
-  const { user, signIn } = useAuth();
+  const { user, updateUserData } = useAuth();
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -107,13 +107,10 @@ export default function Profile() {
         console.log('Profile picture uploaded, URL:', profilePicUrl); // Debug log
         setUploadStatus('success');
         
-        // Update the user data in localStorage and context
-        const storedUser = localStorage.getItem('user');
-        if (storedUser && user) {
-          const updatedUser = { ...JSON.parse(storedUser), profile_picture: filename };
-          localStorage.setItem('user', JSON.stringify(updatedUser));
-          // We should not call signIn here as it requires password
-          // Instead, just update the local state
+        // Update the user data in context and localStorage
+        if (user) {
+          // Use the updateUserData method from AuthContext
+          updateUserData({ profile_picture: filename });
         }
       } else {
         throw new Error('Profile picture URL not received');
@@ -142,10 +139,13 @@ export default function Profile() {
                     src={profileImage}
                     alt="Profile"
                     className="h-full w-full object-cover"
+                    crossOrigin="anonymous"
+                    onLoad={() => console.log('Profile image loaded successfully')}
                     onError={(e) => {
                       console.error('Error loading profile image', e);
-                      // Log the attempted URL for debugging
+                      // Log the attempted URL and browser info for debugging
                       console.log('Failed image URL:', e.currentTarget.src);
+                      console.log('Browser:', navigator.userAgent);
                       e.currentTarget.src = '';
                       setProfileImage(null);
                     }}
