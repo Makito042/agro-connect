@@ -26,6 +26,7 @@ import FriendList from './components/Friends/FriendList';
 import FriendRequests from './components/Friends/FriendRequests';
 import FindFriends from './components/Friends/FindFriends';
 import UserProfile from './components/Friends/UserProfile';
+import ConsultationRoutes from './components/Consultation/ConsultationRoutes';
 
 function App() {
   const Navigation = () => {
@@ -152,6 +153,7 @@ function App() {
             <Route path="/friend-requests" element={<FriendRequests />} />
             <Route path="/find-friends" element={<FindFriends />} />
             <Route path="/user-profile/:userId" element={<UserProfile />} />
+            <Route path="/consultation/*" element={<ConsultationRoutes />} />
           </Routes>
 
           {/* Footer */}

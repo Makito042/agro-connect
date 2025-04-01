@@ -13,8 +13,10 @@ import {
   Zap,
   Shield
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Features() {
+  const navigate = useNavigate();
   const features = [
     {
       icon: <MessageCircle className="w-8 h-8 text-blue-500" />,
@@ -90,7 +92,7 @@ export default function Features() {
         "Direct messaging",
         "Video consultations",
         "Expert directories",
-        "Scheduled sessions"
+        { text: "Scheduled sessions", link: "/consultation/book" }
       ]
     },
     {
@@ -160,7 +162,7 @@ export default function Features() {
 
         <div className="grid md:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <div key={index} className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
+            <div key={index} className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
               <div className="flex items-center mb-4">
                 <div className="p-2 bg-blue-50 rounded-lg mr-4">
                   {feature.icon}
@@ -169,12 +171,25 @@ export default function Features() {
               </div>
               <p className="text-gray-600 mb-4">{feature.description}</p>
               <ul className="space-y-2">
-                {feature.details.map((detail, idx) => (
-                  <li key={idx} className="flex items-center text-gray-600">
-                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
-                    {detail}
-                  </li>
-                ))}
+                {feature.details.map((detail, idx) => {
+                  const detailText = typeof detail === 'object' ? detail.text : detail;
+                  const detailClass = typeof detail === 'object' ? 'text-blue-600 hover:underline' : '';
+                  
+                  return (
+                    <li 
+                      key={idx} 
+                      className={`flex items-center text-gray-600 ${detailClass}`}
+                      onClick={() => {
+                        if (typeof detail === 'object' && detail.link) {
+                          navigate(detail.link);
+                        }
+                      }}
+                    >
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
+                      {detailText}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}

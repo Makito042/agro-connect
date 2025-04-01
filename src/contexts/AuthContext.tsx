@@ -111,9 +111,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         profile_picture: user.profile_picture || ''
       };
       
-      // Store the token and user data
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('user', JSON.stringify(userData2));
+      // Store the token and user data in sessionStorage for tab-specific storage
+      sessionStorage.setItem('authToken', token);
+      sessionStorage.setItem('user', JSON.stringify(userData2));
       
       setUser(userData2);
     } catch (error) {
@@ -165,9 +165,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         profile_picture: user.profile_picture || ''
       };
       
-      // Store the token and user data
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('user', JSON.stringify(userData2));
+      // Store the token and user data in sessionStorage for tab-specific storage
+      sessionStorage.setItem('authToken', token);
+      sessionStorage.setItem('user', JSON.stringify(userData2));
       
       setUser(userData2);
     } catch (error) {

@@ -5,6 +5,16 @@ import { MessageSquare, User, Users, Plus } from 'lucide-react';
 import axios from 'axios';
 import { io, Socket } from 'socket.io-client';
 
+// Get the unique tab ID or create one if it doesn't exist
+const getTabId = () => {
+  let tabId = sessionStorage.getItem('tabId');
+  if (!tabId) {
+    tabId = Math.random().toString(36).substring(2, 15);
+    sessionStorage.setItem('tabId', tabId);
+  }
+  return tabId;
+};
+
 interface Chat {
   _id: string;
   participants: Array<{
@@ -105,10 +115,11 @@ const ChatList: React.FC = () => {
           // If the chat is not in the list, fetch the updated chat list
           const fetchChats = async () => {
             try {
-              const token = localStorage.getItem('authToken');
+              const token = sessionStorage.getItem('authToken');
               const response = await axios.get('http://localhost:5001/api/chat', {
                 headers: {
-                  Authorization: `Bearer ${token}`
+                  Authorization: `Bearer ${token}`,
+                  'X-Tab-ID': getTabId()
                 }
               });
               setChats(response.data);
@@ -162,12 +173,13 @@ const ChatList: React.FC = () => {
         setLoading(true);
         setError('');
         
-        const token = localStorage.getItem('authToken');
+        const token = sessionStorage.getItem('authToken');
         
         // Fetch chats
         const chatsResponse = await axios.get('http://localhost:5001/api/chat', {
           headers: {
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
+            'X-Tab-ID': getTabId()
           }
         });
         

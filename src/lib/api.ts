@@ -13,9 +13,15 @@ interface ApiResponse {
 
 export const uploadProfilePicture = async (formData: FormData): Promise<ApiResponse> => {
   try {
-    const token = localStorage.getItem('authToken');
+    const token = sessionStorage.getItem('authToken');
     if (!token) {
       throw new Error('Authentication token not found');
+    }
+    
+    // Get the unique tab ID
+    const tabId = sessionStorage.getItem('tabId') || Math.random().toString(36).substring(2, 15);
+    if (!sessionStorage.getItem('tabId')) {
+      sessionStorage.setItem('tabId', tabId);
     }
 
     // For multipart/form-data, let the browser set the Content-Type with boundary
@@ -24,7 +30,8 @@ export const uploadProfilePicture = async (formData: FormData): Promise<ApiRespo
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-Tab-ID': tabId
       },
       withCredentials: true
     });

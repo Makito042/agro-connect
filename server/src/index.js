@@ -15,12 +15,17 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'],
-  exposedHeaders: ['Content-Length', 'Content-Type']
+  exposedHeaders: ['Content-Length', 'Content-Type'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 app.use(express.json());
 
 const userRoutes = require('./routes/userRoutes');
-app.use('/api', userRoutes);
+const consultationRoutes = require('./routes/consultationRoutes');
+
+app.use('/api/users', userRoutes);
+app.use('/api/consultation', consultationRoutes);
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, '../uploads/profile-pictures');
 if (!fs.existsSync(uploadDir)) {
@@ -30,11 +35,15 @@ if (!fs.existsSync(uploadDir)) {
 // Serve static files with proper CORS headers
 app.use('/uploads/profile-pictures', (req, res, next) => {
   // Use the same CORS settings as the main app for consistency
-  res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
-  res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
+  const allowedOrigins = ['http://localhost:5173', 'http://localhost:5001'];
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
+  }
   
   // Handle preflight OPTIONS requests
   if (req.method === 'OPTIONS') {
@@ -57,19 +66,24 @@ app.use('/uploads/profile-pictures', (req, res, next) => {
   }
   
   next();
-}, express.static(uploadDir, {
+});
+
+app.use('/uploads/profile-pictures', express.static(uploadDir, {
   maxAge: '1d',
   etag: true,
-  setHeaders: function(res) {
+  setHeaders: function(res, req) {
     // Firefox-specific CORS headers - these are critical for Firefox compatibility
     res.set('Cross-Origin-Resource-Policy', 'cross-origin');
     res.set('Cross-Origin-Embedder-Policy', 'credentialless');
-    res.set('Access-Control-Allow-Origin', 'http://localhost:5173');
+    const origin = req.headers.origin;
+    if (['http://localhost:5173', 'http://localhost:5001'].includes(origin)) {
+      res.set('Access-Control-Allow-Origin', origin);
+    }
     res.set('Access-Control-Allow-Credentials', 'true');
     res.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   }
-}))
+}));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -77,10 +91,60 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Internal Server Error', error: err.message });
 });
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((err) => console.error('MongoDB connection error:', err));
+// MongoDB Connection with retry logic and event handling
+const connectWithRetry = async (retries = 5, interval = 5000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await mongoose.connect(process.env.MONGODB_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 5000,
+        heartbeatFrequencyMS: 1000,
+        maxPoolSize: 10,
+        minPoolSize: 2,
+        socketTimeoutMS: 45000,
+        family: 4
+      });
+      console.log('Connected to MongoDB');
+      return;
+    } catch (err) {
+      console.error(`MongoDB connection attempt ${i + 1} failed:`, err);
+      if (i === retries - 1) {
+        console.error('Max retries reached. Exiting...');
+        process.exit(1);
+      }
+      await new Promise(resolve => setTimeout(resolve, interval));
+    }
+  }
+};
+
+// MongoDB connection event handlers
+mongoose.connection.on('connected', () => {
+  console.log('Mongoose connected to MongoDB');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('Mongoose connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('Mongoose disconnected from MongoDB');
+  connectWithRetry(); // Attempt to reconnect
+});
+
+// Handle process termination
+process.on('SIGINT', async () => {
+  try {
+    await mongoose.connection.close();
+    console.log('Mongoose connection closed through app termination');
+    process.exit(0);
+  } catch (err) {
+    console.error('Error closing Mongoose connection:', err);
+    process.exit(1);
+  }
+});
+
+connectWithRetry();
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -95,10 +159,37 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to Agro-Connected API' });
 });
 
-// Error handling middleware
+// Handle preflight requests
+app.options('*', cors());
+
+// Global error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  console.error('Error details:', {
+    message: err.message,
+    stack: err.stack,
+    timestamp: new Date().toISOString()
+  });
+
+  // Handle specific types of errors
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      message: 'Validation Error',
+      details: err.message
+    });
+  }
+
+  if (err.name === 'MongoError' || err.name === 'MongoServerError') {
+    return res.status(503).json({
+      message: 'Database Error',
+      details: 'A database error occurred'
+    });
+  }
+
+  // Default error response
+  res.status(err.status || 500).json({
+    message: err.message || 'Internal Server Error',
+    error: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
 });
 
 const startServer = async (port) => {
@@ -109,7 +200,7 @@ const startServer = async (port) => {
       // Initialize Socket.io with improved configuration
       const io = new Server(server, {
         cors: {
-          origin: ['http://localhost:5173', 'http://localhost:5001'],
+          origin: 'http://localhost:5173',
           methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
           credentials: true,
           allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'],
@@ -127,9 +218,24 @@ const startServer = async (port) => {
       // Make io accessible to our routes
       app.set('io', io);
       
-      // Socket.io connection handling with improved error handling
+      // Socket.io connection handling with improved error handling and monitoring
       io.on('connection', (socket) => {
         console.log('A user connected:', socket.id);
+        
+        // Monitor socket health
+        const pingInterval = setInterval(() => {
+          socket.emit('ping');
+        }, 25000);
+        
+        socket.on('pong', () => {
+          socket.isAlive = true;
+        });
+        
+        // Error handling for socket events
+        socket.on('error', (error) => {
+          console.error('Socket error for', socket.id, ':', error);
+          socket.emit('error_notification', { message: 'An error occurred' });
+        });
         
         // Track rooms joined by this socket for cleanup on disconnect
         const joinedRooms = new Set();
@@ -247,11 +353,19 @@ const startServer = async (port) => {
         socket.on('disconnect', (reason) => {
           console.log('A user disconnected:', socket.id, 'Reason:', reason);
           
+          // Clean up intervals and socket state
+          clearInterval(pingInterval);
+          
           // Clean up any joined rooms
           joinedRooms.forEach(room => {
             socket.leave(room);
+            // Notify other users in the room
+            io.to(room).emit('user_left', { userId: socket.id });
           });
           joinedRooms.clear();
+          
+          // Remove socket from any custom maps or states
+          socket.removeAllListeners();
         });
       });
       

@@ -6,38 +6,77 @@ import axios from 'axios';
 import { io, Socket } from 'socket.io-client';
 
 interface FriendRequest {
-  requestId: string;
-  from?: {
+  _id: string;
+  sender: {
     _id: string;
     first_name: string;
     last_name: string;
-    email: string;
     profile_picture?: string;
-    user_type: string;
   };
-  to?: {
-    _id: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-    profile_picture?: string;
-    user_type: string;
+  recipient: string;
+  status: string;
+  createdAt: string;
+}
+
+interface ConsultationRequest {
+  consultationId: string;
+  farmer: {
+    id: string;
+    name: string;
+    type: string;
   };
-  createdAt: Date;
+  topic: string;
+  startTime: string;
+  endTime: string;
 }
 
 interface FriendRequestsData {
   incoming: FriendRequest[];
   outgoing: FriendRequest[];
+  consultations: ConsultationRequest[];
 }
 
 const FriendRequests: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [requests, setRequests] = useState<FriendRequestsData>({ incoming: [], outgoing: [] });
+  const [requests, setRequests] = useState<FriendRequestsData>({ incoming: [], outgoing: [], consultations: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing'>('incoming');
+  const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing' | 'consultations'>('incoming');
+
+  const handleConsultationStatusUpdate = async (consultationId: string, status: 'confirmed' | 'cancelled') => {
+    try {
+      const token = sessionStorage.getItem('authToken');
+      const tabId = sessionStorage.getItem('tabId') || Math.random().toString(36).substring(2, 15);
+      if (!sessionStorage.getItem('tabId')) {
+        sessionStorage.setItem('tabId', tabId);
+      }
+      
+      await axios.post(`http://localhost:5001/api/consultation/consultations/${consultationId}/status`, 
+        { status },
+        { headers: { 
+          Authorization: `Bearer ${token}`,
+          'X-Tab-ID': tabId
+        } }
+      );
+      
+      // Update the requests list
+      setRequests(prev => ({
+        ...prev,
+        consultations: prev.consultations.filter(req => req.consultationId !== consultationId)
+      }));
+      
+      // Show success message
+      alert(`Consultation request ${status}!`);
+    } catch (err: any) {
+      console.error(`Error ${status} consultation request:`, err);
+      alert(err.response?.data?.message || `Failed to ${status} consultation request`);
+    }
+  };
+
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -99,7 +138,7 @@ const FriendRequests: React.FC = () => {
       // Remove the request from outgoing list
       setRequests(prev => ({
         ...prev,
-        outgoing: prev.outgoing.filter(req => req.requestId !== data.requestId)
+        outgoing: prev.outgoing.filter(req => req._id !== data._id)
       }));
     };
     
@@ -128,17 +167,34 @@ const FriendRequests: React.FC = () => {
       setLoading(true);
       setError('');
       
-      const token = localStorage.getItem('authToken');
-      const response = await axios.get('http://localhost:5001/api/users/friend-requests', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const token = sessionStorage.getItem('authToken');
+      const tabId = sessionStorage.getItem('tabId') || Math.random().toString(36).substring(2, 15);
+      if (!sessionStorage.getItem('tabId')) {
+        sessionStorage.setItem('tabId', tabId);
+      }
       
-      setRequests(response.data);
+      const [friendResponse, consultationResponse] = await Promise.all([
+        axios.get('http://localhost:5001/api/users/friend-requests', {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        user?.user_type === 'expert' ? 
+          axios.get('http://localhost:5001/api/consultation/consultations', {
+            headers: { Authorization: `Bearer ${token}` }
+          }) : 
+          Promise.resolve({ data: [] })
+      ]);
+
+      const consultations = user?.user_type === 'expert' ? 
+        consultationResponse.data.filter((consultation: any) => consultation.status === 'pending') : 
+        [];
+      
+      setRequests({
+        ...friendResponse.data,
+        consultations
+      });
     } catch (err: any) {
-      console.error('Error fetching friend requests:', err);
-      setError(err.response?.data?.message || 'Failed to load friend requests');
+      console.error('Error fetching requests:', err);
+      setError(err.response?.data?.message || 'Failed to load requests');
     } finally {
       setLoading(false);
     }
@@ -156,7 +212,7 @@ const FriendRequests: React.FC = () => {
       // Update the requests list
       setRequests(prev => ({
         ...prev,
-        incoming: prev.incoming.filter(req => req.requestId !== requestId)
+        incoming: prev.incoming.filter(req => req._id !== requestId)
       }));
       
       // Show success message
@@ -179,7 +235,7 @@ const FriendRequests: React.FC = () => {
       // Update the requests list
       setRequests(prev => ({
         ...prev,
-        incoming: prev.incoming.filter(req => req.requestId !== requestId)
+        incoming: prev.incoming.filter(req => req._id !== requestId)
       }));
     } catch (err: any) {
       console.error('Error rejecting friend request:', err);
@@ -199,7 +255,7 @@ const FriendRequests: React.FC = () => {
       // Update the requests list
       setRequests(prev => ({
         ...prev,
-        outgoing: prev.outgoing.filter(req => req.requestId !== requestId)
+        outgoing: prev.outgoing.filter(req => req._id !== requestId)
       }));
     } catch (err: any) {
       console.error('Error canceling friend request:', err);
@@ -369,6 +425,19 @@ const FriendRequests: React.FC = () => {
             </span>
           )}
         </button>
+        {user?.user_type === 'expert' && (
+          <button
+            className={`flex-1 py-2 sm:py-3 text-sm sm:text-base font-medium ${activeTab === 'consultations' ? 'text-blue-600 border-b-2 border-blue-500' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('consultations')}
+          >
+            Consultations
+            {requests.consultations.length > 0 && (
+              <span className="ml-1 sm:ml-2 px-1.5 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">
+                {requests.consultations.length}
+              </span>
+            )}
+          </button>
+        )}
       </div>
       
       {/* Search bar */}
@@ -397,6 +466,47 @@ const FriendRequests: React.FC = () => {
 
       {/* Request list */}
       <div className="flex-1 overflow-y-auto">
+        {activeTab === 'consultations' && user?.user_type === 'expert' && (
+          <div className="space-y-4">
+            {requests.consultations.map((request) => (
+              <div key={request._id} className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-medium text-gray-900">{request.topic}</h3>
+                    <p className="text-sm text-gray-600">
+                      From: {request.farmer.name} ({request.farmer.type})
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleConsultationStatusUpdate(request._id, 'confirmed')}
+                      className="p-2 text-green-600 hover:bg-green-50 rounded-full transition-colors"
+                      title="Accept"
+                    >
+                      <Check size={20} />
+                    </button>
+                    <button
+                      onClick={() => handleConsultationStatusUpdate(request._id, 'cancelled')}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                      title="Reject"
+                    >
+                      <UserX size={20} />
+                    </button>
+                  </div>
+                </div>
+                <div className="text-sm text-gray-600">
+                  <p>Start: {formatDateTime(request.startTime)}</p>
+                  <p>End: {formatDateTime(request.endTime)}</p>
+                </div>
+              </div>
+            ))}
+            {requests.consultations.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No pending consultation requests
+              </div>
+            )}
+          </div>
+        )}
         {error && (
           <div className="p-3 sm:p-4 text-red-500 text-sm">{error}</div>
         )}
@@ -501,10 +611,10 @@ const FriendRequests: React.FC = () => {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-medium text-gray-900 text-sm sm:text-base">
-                          {request.from?.first_name} {request.from?.last_name}
+                          {request.sender.first_name} {request.sender.last_name}
                         </h3>
                         <div className="flex items-center text-xs sm:text-sm text-gray-500">
-                          <p className="mr-2">{request.from?.user_type}</p>
+                          <p className="mr-2">{request.sender.user_type}</p>
                           <span className="flex items-center text-gray-400">
                             <Clock size={12} className="mr-1" />
                             {formatDate(request.createdAt)}
@@ -513,14 +623,14 @@ const FriendRequests: React.FC = () => {
                       </div>
                       <div className="flex space-x-2">
                         <button 
-                          onClick={() => acceptRequest(request.requestId)}
+                          onClick={() => acceptRequest(request._id)}
                           className="p-1.5 sm:p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition-colors"
                           title="Accept"
                         >
                           <UserCheck size={16} />
                         </button>
                         <button 
-                          onClick={() => rejectRequest(request.requestId)}
+                          onClick={() => rejectRequest(request._id)}
                           className="p-1.5 sm:p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
                           title="Reject"
                         >
@@ -566,10 +676,10 @@ const FriendRequests: React.FC = () => {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-medium text-gray-900 text-sm sm:text-base">
-                          {request.to?.first_name} {request.to?.last_name}
+                          {request.recipient.first_name} {request.recipient.last_name}
                         </h3>
                         <div className="flex items-center text-xs sm:text-sm text-gray-500">
-                          <p className="mr-2">{request.to?.user_type}</p>
+                          <p className="mr-2">{request.recipient.user_type}</p>
                           <span className="flex items-center text-gray-400">
                             <Clock size={12} className="mr-1" />
                             {formatDate(request.createdAt)}
@@ -578,7 +688,7 @@ const FriendRequests: React.FC = () => {
                       </div>
                       <div>
                         <button 
-                          onClick={() => cancelRequest(request.requestId)}
+                          onClick={() => cancelRequest(request._id)}
                           className="p-1.5 sm:p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
                           title="Cancel Request"
                         >
