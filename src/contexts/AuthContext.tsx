@@ -48,9 +48,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored auth token and user data
-    const token = localStorage.getItem('authToken');
-    const storedUser = localStorage.getItem('user');
+    // Check for stored auth token and user data from sessionStorage
+    const token = sessionStorage.getItem('authToken');
+    const storedUser = sessionStorage.getItem('user');
     
     if (token && storedUser) {
       try {
@@ -59,8 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(parsedUser);
       } catch (error) {
         console.error('Error parsing stored user data:', error);
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('authToken');
+        sessionStorage.removeItem('user');
       }
     }
     
@@ -176,8 +176,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('user');
     setUser(null);
   };
 
@@ -188,8 +188,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Create updated user object by merging current user with new data
     const updatedUser = { ...user, ...userData };
     
-    // Update localStorage
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    // Update sessionStorage
+    sessionStorage.setItem('user', JSON.stringify(updatedUser));
     
     // Update state
     setUser(updatedUser);
