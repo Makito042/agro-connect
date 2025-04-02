@@ -10,15 +10,72 @@ const { Server } = require('socket.io');
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5001', 'http://127.0.0.1:5173'],
+// Configure CORS middleware
+const allowedOrigins = ['http://localhost:5173', 'http://localhost:5001', 'http://127.0.0.1:5173', 'http://localhost:3000'];
+
+// Development environment check
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
+const corsOptions = {
+  origin: function(origin, callback) {
+    // Allow all origins in development mode
+    if (isDevelopment) {
+      callback(null, true);
+      return;
+    }
+
+    // Allow requests with no origin (like mobile apps, curl, postman)
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    // Check if origin is allowed in production
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept', 'X-Tab-ID'],
   exposedHeaders: ['Content-Length', 'Content-Type'],
   preflightContinue: false,
-  optionsSuccessStatus: 204
-}));
+  optionsSuccessStatus: 204,
+  maxAge: 86400 // 24 hours
+};
+
+// Apply CORS globally
+app.use(cors(corsOptions));
+
+// Enable pre-flight requests for all routes
+app.options('*', cors(corsOptions));
+
+// Additional CORS headers middleware
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Skip CORS for same-origin requests
+  if (!origin) {
+    return next();
+  }
+
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Tab-ID');
+    res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
+  }
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+  
+  next();
+});
 app.use(express.json());
 
 const userRoutes = require('./routes/userRoutes');
@@ -35,7 +92,10 @@ if (!fs.existsSync(uploadDir)) {
 // Serve static files with proper CORS headers
 app.use('/uploads/profile-pictures', (req, res, next) => {
   // Use the same CORS settings as the main app for consistency
-  const allowedOrigins = ['http://localhost:5173', 'http://localhost:5001', 'http://127.0.0.1:5173'];
+  const allowedOrigins = ['http://localhost:5173', 'http://localhost:5001', 'http://127.0.0.1:5173', 'http://localhost:3000'];
+
+// Development environment check
+const isDevelopment = process.env.NODE_ENV !== 'production';
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
@@ -76,8 +136,9 @@ app.use('/uploads/profile-pictures', express.static(uploadDir, {
     res.set('Cross-Origin-Resource-Policy', 'cross-origin');
     res.set('Cross-Origin-Embedder-Policy', 'credentialless');
     // In express.static, the request object is not passed to setHeaders
-    // We'll set CORS headers for all allowed origins
-    res.set('Access-Control-Allow-Origin', 'http://localhost:5173')
+    // We'll set CORS headers dynamically based on the Origin header
+    const origin = allowedOrigins[0]; // Default to first allowed origin
+    res.set('Access-Control-Allow-Origin', origin)
     res.set('Access-Control-Allow-Credentials', 'true');
     res.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Tab-ID');
@@ -199,7 +260,7 @@ const startServer = async (port) => {
       // Initialize Socket.io with improved configuration
       const io = new Server(server, {
         cors: {
-          origin: ['http://localhost:5173', 'http://localhost:5001', 'http://127.0.0.1:5173'],
+          origin: isDevelopment ? true : allowedOrigins,
           methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
           credentials: true,
           allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept', 'X-Tab-ID'],

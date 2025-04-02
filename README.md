@@ -1,17 +1,15 @@
 # Agro-Connected
 
-A modern digital platform connecting farmers, agricultural experts, and enthusiasts to share knowledge, experiences, and best practices in farming. Agro-Connected provides a comprehensive ecosystem for agricultural knowledge sharing and community building.
-
-![Agro-Connected](https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&q=80&w=1200)
+Agro-Connected is a modern web application that facilitates connections and communication in the agricultural sector. The platform features real-time chat, user authentication, profile management, and consultation services.
 
 ## Features
 
-- **Expert Community**: Connect with agricultural experts and fellow farmers
-- **Interactive Forum**: Share experiences and get advice from the community
-- **Data-Driven Insights**: Access real-time agricultural data and analytics
-- **User Authentication**: Secure email-based authentication system
-- **Modern UI**: Beautiful, responsive design with Tailwind CSS
-- **Real-time Updates**: Instant updates for forum posts and interactions
+- Real-time chat with Socket.IO integration
+- User authentication and authorization with JWT
+- Profile management with picture uploads
+- Consultation services
+- Responsive design with Tailwind CSS
+- TypeScript support for better development experience
 
 ## Tech Stack
 
@@ -19,191 +17,182 @@ A modern digital platform connecting farmers, agricultural experts, and enthusia
 - React 18
 - TypeScript
 - Tailwind CSS
+- Socket.IO Client
 - Vite
-- React Router DOM v6
-- Lucide React (Icons)
-- Date-fns
-- Axios
+- React Router DOM
 
 ### Backend
 - Node.js
 - Express
 - MongoDB (with Mongoose)
+- Socket.IO
 - JWT Authentication
 - Multer (File uploads)
 - Express Validator
 
-## Getting Started
+## Prerequisites
 
-### Prerequisites
+Before you begin, ensure you have the following installed:
 
 - Node.js (v16 or higher)
 - npm or yarn
-- MongoDB database
+- MongoDB (local installation or MongoDB Atlas account)
+- Git
 
-### Installation
+## Installation
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd agro-connected
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Create a `.env` file in the root directory with your environment variables:
-   ```env
-   VITE_API_URL=http://localhost:5000/api
-   ```
-
-4. Create a `.env` file in the server directory with your environment variables:
-   ```env
-   MONGODB_URI=your_mongodb_connection_string
-   JWT_SECRET=your_jwt_secret
-   PORT=5000
-   ```
-
-5. Start the backend server:
-   ```bash
-   cd server
-   npm install
-   npm run dev
-   ```
-
-6. Start the frontend development server:
-   ```bash
-   # In another terminal, from the project root
-   npm run dev
-   ```
-
-The frontend application will be available at `http://localhost:5173`
-The backend API will be available at `http://localhost:5000/api`
-
-### Building for Production
-
-To create a production build:
+### 1. Clone the Repository
 
 ```bash
-npm run build
+git clone <repository-url>
+cd agro-connect
 ```
 
-The built files will be in the `dist` directory.
+### 2. Backend Setup
+
+1. Navigate to the server directory:
+```bash
+cd server
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Create a .env file in the server directory with the following variables:
+```env
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+PORT=5000
+NODE_ENV=development
+```
+
+4. Start the development server:
+```bash
+npm run dev
+```
+
+The backend server will start on http://localhost:5000
+
+### 3. Frontend Setup
+
+1. Open a new terminal and navigate to the project root:
+```bash
+cd ..
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Create a .env file in the root directory with:
+```env
+VITE_API_URL=http://localhost:5000
+```
+
+4. Start the development server:
+```bash
+npm run dev
+```
+
+The frontend application will start on http://localhost:5173
+
+## Available Scripts
+
+### Frontend
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Lint code
+
+### Backend
+
+- `npm run dev` - Start development server with nodemon
+- `npm start` - Start production server
 
 ## Project Structure
 
 ```
-./
-├── src/                      # Frontend source code
-│   ├── components/           # React components
-│   │   ├── Auth/            # Authentication components
-│   │   ├── Features.tsx     # Features page component
-│   │   ├── Forum.tsx        # Forum page component
-│   │   ├── Home.tsx         # Home page component
-│   │   └── Profile.tsx      # User profile component
-│   ├── contexts/            # React contexts
-│   │   └── AuthContext.tsx  # Authentication context
-│   ├── lib/                 # Utility functions
-│   │   └── api.ts           # API client setup
-│   ├── App.tsx              # Main application component
-│   ├── index.css            # Global styles
-│   └── main.tsx             # Application entry point
-├── server/                   # Backend source code
-│   ├── src/                 # Server source code
-│   │   ├── controllers/     # API controllers
-│   │   ├── middleware/      # Express middleware
-│   │   ├── models/          # Mongoose models
-│   │   ├── routes/          # API routes
-│   │   └── index.js         # Server entry point
-│   └── uploads/             # File uploads directory
-│       └── profile-pictures/# User profile pictures
-├── .env                      # Frontend environment variables
-├── index.html                # HTML entry point
-├── package.json              # Frontend dependencies
-├── tailwind.config.js        # Tailwind CSS configuration
-├── tsconfig.json             # TypeScript configuration
-└── vite.config.ts            # Vite configuration
+├── src/                    # Frontend source files
+│   ├── components/         # React components
+│   ├── contexts/           # React contexts
+│   ├── lib/                # Utility functions
+│   ├── App.tsx             # Main App component
+│   └── main.tsx            # Entry point
+├── server/                 # Backend files
+│   ├── src/
+│   │   ├── middleware/     # Express middleware
+│   │   ├── models/         # Mongoose models
+│   │   ├── routes/         # API routes
+│   │   └── index.js        # Server entry point
+│   └── uploads/            # File uploads directory
+├── .env                    # Environment variables
+├── package.json           # Project dependencies
+└── vite.config.ts        # Vite configuration
 ```
 
-## Deployment
-
-### Building for Production
-
-To create a production build:
-
-```bash
-npm run build
-```
-
-The built files will be in the `dist` directory.
-
-### Deployment Options
-
-1. **Frontend Deployment**:
-   - Deploy the `dist` directory to platforms like Netlify, Vercel, or GitHub Pages
-   - These platforms offer automatic deployments from your Git repository
-
-2. **Backend Deployment**:
-   - Deploy the Node.js server to platforms like Heroku, Railway, or Render
-   - Alternatively, use container services like AWS ECS or Google Cloud Run
-
-3. **Database Deployment**:
-   - Use MongoDB Atlas for cloud-hosted MongoDB database
-   - Ensure proper network security settings for database access
-
-4. **Environment Configuration**:
-   - Ensure all environment variables are properly set in your deployment platforms
-   - Configure CORS settings to allow communication between frontend and backend
-   - Set up proper security headers and HTTPS
-
-## Features in Detail
-
-### Home Page
-- Modern, responsive landing page
-- Quick overview of platform features
-- Easy navigation to key sections
-
-### Features Page
-- Comprehensive list of platform capabilities
-- Detailed descriptions of each feature
-- Interactive UI elements
-
-### Forum
-- Real-time discussion platform
-- Image and video sharing
-- Like and comment functionality
-- User engagement metrics
+## API Endpoints
 
 ### Authentication
-- Secure email/password authentication
-- User registration
-- Password confirmation
-- Error handling and validation
+- POST /api/auth/register - Register new user
+- POST /api/auth/login - User login
+
+### Users
+- GET /api/users/profile - Get user profile
+- PUT /api/users/profile - Update user profile
+- POST /api/users/profile/picture - Upload profile picture
+
+### Consultations
+- POST /api/consultation - Create consultation
+- GET /api/consultation - Get consultations
+
+## Environment Variables
+
+### Backend (.env)
+```env
+MONGODB_URI=mongodb://localhost:27017/agro-connect
+JWT_SECRET=your_jwt_secret
+PORT=5000
+NODE_ENV=development
+```
+
+### Frontend (.env)
+```env
+VITE_API_URL=http://localhost:5000
+```
+
+## Development
+
+1. Follow the installation steps above
+2. Make sure both frontend and backend servers are running
+3. Frontend runs on http://localhost:5173
+4. Backend runs on http://localhost:5000
+5. API endpoints are prefixed with /api
+
+## Production Deployment
+
+### Backend
+1. Set NODE_ENV=production in .env
+2. Update CORS settings in server/src/index.js
+3. Set up proper MongoDB connection string
+4. Run `npm start`
+
+### Frontend
+1. Update VITE_API_URL in .env
+2. Run `npm run build`
+3. Deploy the dist directory to your hosting service
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a new Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Contact
-
-Project Link: [https://github.com/yourusername/agro-connected](https://github.com/yourusername/agro-connected)
-
-## Acknowledgments
-
-- [Tailwind CSS](https://tailwindcss.com)
-- [Vite](https://vitejs.dev)
-- [MongoDB](https://www.mongodb.com)
-- [Express](https://expressjs.com)
-- [React](https://reactjs.org)
-- [Node.js](https://nodejs.org)
-- [Lucide Icons](https://lucide.dev)
+This project is licensed under the MIT License.
