@@ -201,8 +201,14 @@ const FriendRequests: React.FC = () => {
   };
 
   const acceptRequest = async (requestId: string) => {
+    if (!requestId) {
+      console.error('Error: Request ID is undefined');
+      alert('Cannot accept request: Request ID is missing');
+      return;
+    }
+    
     try {
-      const token = localStorage.getItem('authToken');
+      const token = sessionStorage.getItem('authToken');
       await axios.put(`http://localhost:5001/api/users/friend-request/${requestId}/accept`, {}, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -212,7 +218,7 @@ const FriendRequests: React.FC = () => {
       // Update the requests list
       setRequests(prev => ({
         ...prev,
-        incoming: prev.incoming.filter(req => req._id !== requestId)
+        incoming: prev.incoming.filter(req => req.requestId !== requestId)
       }));
       
       // Show success message
@@ -224,8 +230,14 @@ const FriendRequests: React.FC = () => {
   };
 
   const rejectRequest = async (requestId: string) => {
+    if (!requestId) {
+      console.error('Error: Request ID is undefined');
+      alert('Cannot reject request: Request ID is missing');
+      return;
+    }
+    
     try {
-      const token = localStorage.getItem('authToken');
+      const token = sessionStorage.getItem('authToken');
       await axios.put(`http://localhost:5001/api/users/friend-request/${requestId}/reject`, {}, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -235,7 +247,7 @@ const FriendRequests: React.FC = () => {
       // Update the requests list
       setRequests(prev => ({
         ...prev,
-        incoming: prev.incoming.filter(req => req._id !== requestId)
+        incoming: prev.incoming.filter(req => req.requestId !== requestId)
       }));
     } catch (err: any) {
       console.error('Error rejecting friend request:', err);
@@ -244,8 +256,14 @@ const FriendRequests: React.FC = () => {
   };
 
   const cancelRequest = async (requestId: string) => {
+    if (!requestId) {
+      console.error('Error: Request ID is undefined');
+      alert('Cannot cancel request: Request ID is missing');
+      return;
+    }
+    
     try {
-      const token = localStorage.getItem('authToken');
+      const token = sessionStorage.getItem('authToken');
       await axios.put(`http://localhost:5001/api/users/friend-request/${requestId}/reject`, {}, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -255,7 +273,7 @@ const FriendRequests: React.FC = () => {
       // Update the requests list
       setRequests(prev => ({
         ...prev,
-        outgoing: prev.outgoing.filter(req => req._id !== requestId)
+        outgoing: prev.outgoing.filter(req => req.requestId !== requestId)
       }));
     } catch (err: any) {
       console.error('Error canceling friend request:', err);
@@ -271,7 +289,7 @@ const FriendRequests: React.FC = () => {
       setSearchLoading(true);
       setSearchError('');
       
-      const token = localStorage.getItem('authToken');
+      const token = sessionStorage.getItem('authToken');
       const response = await axios.get(`http://localhost:5001/api/users/search?query=${encodeURIComponent(searchQuery)}`, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -300,7 +318,7 @@ const FriendRequests: React.FC = () => {
       setLoading(true);
       setError('');
       
-      const token = localStorage.getItem('authToken');
+      const token = sessionStorage.getItem('authToken');
       const response = await axios.post('http://localhost:5001/api/users/friend-request', 
         { recipientId: userId },
         {
@@ -611,10 +629,10 @@ const FriendRequests: React.FC = () => {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-medium text-gray-900 text-sm sm:text-base">
-                          {request.sender.first_name} {request.sender.last_name}
+                          {request.sender?.first_name || request.from?.first_name} {request.sender?.last_name || request.from?.last_name}
                         </h3>
                         <div className="flex items-center text-xs sm:text-sm text-gray-500">
-                          <p className="mr-2">{request.sender.user_type}</p>
+                          <p className="mr-2">{request.sender?.user_type || request.from?.user_type}</p>
                           <span className="flex items-center text-gray-400">
                             <Clock size={12} className="mr-1" />
                             {formatDate(request.createdAt)}
@@ -623,14 +641,14 @@ const FriendRequests: React.FC = () => {
                       </div>
                       <div className="flex space-x-2">
                         <button 
-                          onClick={() => acceptRequest(request._id)}
+                          onClick={() => acceptRequest(request.requestId)}
                           className="p-1.5 sm:p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition-colors"
                           title="Accept"
                         >
                           <UserCheck size={16} />
                         </button>
                         <button 
-                          onClick={() => rejectRequest(request._id)}
+                          onClick={() => rejectRequest(request.requestId)}
                           className="p-1.5 sm:p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
                           title="Reject"
                         >
@@ -676,10 +694,10 @@ const FriendRequests: React.FC = () => {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-medium text-gray-900 text-sm sm:text-base">
-                          {request.recipient.first_name} {request.recipient.last_name}
+                          {request.to?.first_name || request.recipient?.first_name} {request.to?.last_name || request.recipient?.last_name}
                         </h3>
                         <div className="flex items-center text-xs sm:text-sm text-gray-500">
-                          <p className="mr-2">{request.recipient.user_type}</p>
+                          <p className="mr-2">{request.to?.user_type || request.recipient?.user_type}</p>
                           <span className="flex items-center text-gray-400">
                             <Clock size={12} className="mr-1" />
                             {formatDate(request.createdAt)}
@@ -688,7 +706,7 @@ const FriendRequests: React.FC = () => {
                       </div>
                       <div>
                         <button 
-                          onClick={() => cancelRequest(request._id)}
+                          onClick={() => cancelRequest(request.requestId)}
                           className="p-1.5 sm:p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
                           title="Cancel Request"
                         >

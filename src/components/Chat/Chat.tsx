@@ -167,7 +167,7 @@ const Chat: React.FC<ChatProps> = ({ chatId: propsChatId }) => {
         setLoading(true);
         setError('');
         
-        const token = localStorage.getItem('authToken');
+        const token = sessionStorage.getItem('authToken');
         const response = await axios.get(`http://localhost:5001/api/chat/messages/${activeChatId}`, {
           headers: {
             Authorization: `Bearer ${token}`
@@ -205,7 +205,7 @@ const Chat: React.FC<ChatProps> = ({ chatId: propsChatId }) => {
     
     try {
       setError('');
-      const token = localStorage.getItem('authToken');
+      const token = sessionStorage.getItem('authToken');
       
       // If there's a media file, upload it first
       let mediaUrl = '';
@@ -417,17 +417,30 @@ const Chat: React.FC<ChatProps> = ({ chatId: propsChatId }) => {
               {chatInfo?.chatType === 'group' 
                 ? chatInfo?.groupName 
                 : (() => {
-                    // Try to get participant info from localStorage first
+                    // Always find the other participant from chatInfo first
+                    const otherParticipant = chatInfo?.participants?.find((p: any) => p._id !== user?.id);
+                    
+                    // If we have the other participant from chatInfo, use that
+                    if (otherParticipant) {
+                      return `${otherParticipant.first_name || ''} ${otherParticipant.last_name || ''}`.trim() || 'Chat';
+                    }
+                    
+                    // Try to get participant info from localStorage as fallback
                     const participantInfo = localStorage.getItem(`chat_${activeChatId}_participant`);
                     if (participantInfo) {
-                      const participant = JSON.parse(participantInfo);
-                      return `${participant.first_name || ''} ${participant.last_name || ''}`.trim() || 'Chat';
+                      try {
+                        const participant = JSON.parse(participantInfo);
+                        // Make sure the participant is not the current user
+                        if (participant._id !== user?.id) {
+                          return `${participant.first_name || ''} ${participant.last_name || ''}`.trim() || 'Chat';
+                        }
+                      } catch (error) {
+                        console.error('Error parsing participant info:', error);
+                      }
                     }
-                    // Fallback to chatInfo if localStorage data is not available
-                    const otherParticipant = chatInfo?.participants?.find((p: any) => p._id !== user?.id);
-                    return otherParticipant 
-                      ? `${otherParticipant.first_name || ''} ${otherParticipant.last_name || ''}`.trim() || 'Chat'
-                      : 'Chat';
+                    
+                    // Default fallback
+                    return 'Chat';
                   })()
               }
             </h3>
@@ -457,6 +470,33 @@ const Chat: React.FC<ChatProps> = ({ chatId: propsChatId }) => {
                 <div 
                   className={`max-w-[75%] sm:max-w-[70%] rounded-lg p-2 sm:p-3 ${isCurrentUser ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-800'}`}
                 >
+                  {!isCurrentUser && (
+                    <p className="text-xs font-medium mb-1 text-gray-600">
+                      {(() => {
+                        // Try to get from chatInfo participants first (most reliable source)
+                        const senderParticipant = chatInfo?.participants?.find((p) => p._id === message.sender);
+                        if (senderParticipant) {
+                          return `${senderParticipant.first_name || ''} ${senderParticipant.last_name || ''}`.trim() || 'User';
+                        }
+                        
+                        // Try to get participant info from localStorage as fallback
+                        try {
+                          const participantInfo = localStorage.getItem(`chat_${activeChatId}_participant`);
+                          if (participantInfo) {
+                            const participant = JSON.parse(participantInfo);
+                            // Only use this if it matches the sender ID
+                            if (participant._id === message.sender) {
+                              return `${participant.first_name || ''} ${participant.last_name || ''}`.trim() || 'User';
+                            }
+                          }
+                        } catch (error) {
+                          console.error('Error parsing participant info:', error);
+                        }
+                        
+                        return 'User';
+                      })()}
+                    </p>
+                  )}
                   {message.mediaUrl && message.mediaType === 'image' && (
                     <div className="mb-2">
                       <img 

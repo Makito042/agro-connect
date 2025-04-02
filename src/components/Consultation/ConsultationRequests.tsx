@@ -28,6 +28,7 @@ interface ConsultationRequest {
   startTime: string;
   endTime: string;
   status: string;
+  senderName?: string; // Optional field for sender's name
 }
 
 const ConsultationRequests: React.FC = () => {
@@ -107,7 +108,37 @@ const ConsultationRequests: React.FC = () => {
       const pendingRequests = data.filter((consultation: any) => 
         consultation.status === 'pending'
       );
-      setRequests(pendingRequests);
+      
+      // Fetch additional user details if needed
+      const enhancedRequests = await Promise.all(pendingRequests.map(async (req: any) => {
+        // Check if sender information is missing or incomplete
+        if (!req.sender || (!req.sender.first_name && !req.senderName)) {
+          try {
+            // If the request has farmer field (from backend model)
+            if (req.farmer) {
+              // If farmer is an object with _id
+              const farmerId = typeof req.farmer === 'object' ? req.farmer._id : req.farmer;
+              // Fetch farmer details
+              const farmerData = await authGet(`users/${farmerId}`);
+              return {
+                ...req,
+                sender: {
+                  _id: farmerData._id,
+                  first_name: farmerData.first_name,
+                  last_name: farmerData.last_name,
+                  type: farmerData.user_type || 'farmer'
+                }
+              };
+            }
+          } catch (error) {
+            console.error('Error fetching farmer details:', error);
+            return req;
+          }
+        }
+        return req;
+      }));
+      
+      setRequests(enhancedRequests);
     } catch (err: any) {
       console.error('Error fetching consultation requests:', handleApiError(err));
       setError('Failed to load consultation requests');
@@ -175,7 +206,8 @@ const ConsultationRequests: React.FC = () => {
                   <div>
                     <h3 className="font-medium text-gray-900">{request.topic}</h3>
                     <p className="text-sm text-gray-600">
-                      From: {request.sender.first_name} {request.sender.last_name} ({request.sender.type})
+                      From: {request.sender?.first_name ? `${request.sender.first_name} ${request.sender.last_name}` : request.senderName || 'Unknown User'} 
+                      ({request.sender?.type || 'farmer'})
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">

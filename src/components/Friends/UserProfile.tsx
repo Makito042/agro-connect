@@ -49,7 +49,7 @@ const UserProfile: React.FC = () => {
       setLoading(true);
       setError('');
       
-      const token = localStorage.getItem('authToken');
+      const token = sessionStorage.getItem('authToken');
       const response = await axios.get(`http://localhost:5001/api/users/${id}/profile`, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -75,7 +75,7 @@ const UserProfile: React.FC = () => {
     if (!profileData) return;
     
     try {
-      const token = localStorage.getItem('authToken');
+      const token = sessionStorage.getItem('authToken');
       const response = await axios.post('http://localhost:5001/api/chat/private', 
         { participantId: profileData._id },
         {
@@ -85,6 +85,14 @@ const UserProfile: React.FC = () => {
           }
         }
       );
+      
+      // Store participant info in localStorage before navigating
+      localStorage.setItem(`chat_${response.data._id}_participant`, JSON.stringify({
+        _id: profileData._id,
+        first_name: profileData.first_name,
+        last_name: profileData.last_name,
+        profile_picture: profileData.profile_picture
+      }));
       
       // Navigate to the chat
       navigate(`/chat/${response.data._id}`);

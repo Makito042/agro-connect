@@ -49,7 +49,7 @@ const FriendList: React.FC = () => {
       setLoading(true);
       setError('');
       
-      const token = localStorage.getItem('authToken');
+      const token = sessionStorage.getItem('authToken');
       const response = await axios.get('http://localhost:5001/api/users/friends', {
         headers: {
           Authorization: `Bearer ${token}`
@@ -72,7 +72,7 @@ const FriendList: React.FC = () => {
     }
     
     try {
-      const token = localStorage.getItem('authToken');
+      const token = sessionStorage.getItem('authToken');
       await axios.delete(`http://localhost:5001/api/users/friends/${friendId}`, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -89,7 +89,7 @@ const FriendList: React.FC = () => {
 
   const startChat = async (friendId: string) => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = sessionStorage.getItem('authToken');
       const response = await axios.post('http://localhost:5001/api/chat/private', 
         { recipientId: friendId },
         {

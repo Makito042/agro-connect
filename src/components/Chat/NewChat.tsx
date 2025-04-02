@@ -34,7 +34,7 @@ const NewChat: React.FC = () => {
       setLoading(true);
       setError('');
       
-      const token = localStorage.getItem('authToken');
+      const token = sessionStorage.getItem('authToken');
       const response = await axios.get(`http://localhost:5001/api/users/search?query=${encodeURIComponent(searchQuery)}`, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -63,7 +63,7 @@ const NewChat: React.FC = () => {
       setLoading(true);
       setError('');
       
-      const token = localStorage.getItem('authToken');
+      const token = sessionStorage.getItem('authToken');
       
       // First check if they are friends
       const userResponse = await axios.get(`http://localhost:5001/api/users/search?query=${userId}`, {
@@ -86,6 +86,17 @@ const NewChat: React.FC = () => {
           }
         }
       );
+      
+      // Store the participant info in localStorage before navigating
+      const selectedUser = searchResults.find(user => user._id === userId);
+      if (selectedUser) {
+        localStorage.setItem(`chat_${response.data._id}_participant`, JSON.stringify({
+          _id: selectedUser._id,
+          first_name: selectedUser.first_name,
+          last_name: selectedUser.last_name,
+          profile_picture: selectedUser.profile_picture
+        }));
+      }
       
       // Navigate to the new chat
       navigate(`/chat/${response.data._id}`);

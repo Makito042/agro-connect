@@ -11,10 +11,10 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5001'],
+  origin: ['http://localhost:5173', 'http://localhost:5001', 'http://127.0.0.1:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept', 'X-Tab-ID'],
   exposedHeaders: ['Content-Length', 'Content-Type'],
   preflightContinue: false,
   optionsSuccessStatus: 204
@@ -35,12 +35,12 @@ if (!fs.existsSync(uploadDir)) {
 // Serve static files with proper CORS headers
 app.use('/uploads/profile-pictures', (req, res, next) => {
   // Use the same CORS settings as the main app for consistency
-  const allowedOrigins = ['http://localhost:5173', 'http://localhost:5001'];
+  const allowedOrigins = ['http://localhost:5173', 'http://localhost:5001', 'http://127.0.0.1:5173'];
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Tab-ID');
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
   }
@@ -71,17 +71,16 @@ app.use('/uploads/profile-pictures', (req, res, next) => {
 app.use('/uploads/profile-pictures', express.static(uploadDir, {
   maxAge: '1d',
   etag: true,
-  setHeaders: function(res, req) {
+  setHeaders: function(res, path, stat) {
     // Firefox-specific CORS headers - these are critical for Firefox compatibility
     res.set('Cross-Origin-Resource-Policy', 'cross-origin');
     res.set('Cross-Origin-Embedder-Policy', 'credentialless');
-    const origin = req.headers.origin;
-    if (['http://localhost:5173', 'http://localhost:5001'].includes(origin)) {
-      res.set('Access-Control-Allow-Origin', origin);
-    }
+    // In express.static, the request object is not passed to setHeaders
+    // We'll set CORS headers for all allowed origins
+    res.set('Access-Control-Allow-Origin', 'http://localhost:5173')
     res.set('Access-Control-Allow-Credentials', 'true');
     res.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Tab-ID');
   }
 }));
 
@@ -200,10 +199,10 @@ const startServer = async (port) => {
       // Initialize Socket.io with improved configuration
       const io = new Server(server, {
         cors: {
-          origin: 'http://localhost:5173',
+          origin: ['http://localhost:5173', 'http://localhost:5001', 'http://127.0.0.1:5173'],
           methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
           credentials: true,
-          allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'],
+          allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept', 'X-Tab-ID'],
           exposedHeaders: ['Content-Length', 'Content-Type']
         },
         allowEIO3: true,

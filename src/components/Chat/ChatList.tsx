@@ -140,7 +140,7 @@ const ChatList: React.FC = () => {
       // Refresh the chat list when this event is received
       const fetchChats = async () => {
         try {
-          const token = localStorage.getItem('authToken');
+          const token = sessionStorage.getItem('authToken');
           const response = await axios.get('http://localhost:5001/api/chat', {
             headers: {
               Authorization: `Bearer ${token}`

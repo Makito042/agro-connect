@@ -37,7 +37,7 @@ const MessageRequests: React.FC = () => {
         setLoading(true);
         setError('');
         
-        const token = localStorage.getItem('authToken');
+        const token = sessionStorage.getItem('authToken');
         const response = await axios.get('http://localhost:5001/api/users/message-requests', {
           headers: {
             Authorization: `Bearer ${token}`
@@ -60,7 +60,7 @@ const MessageRequests: React.FC = () => {
     try {
       setLoading(true);
       
-      const token = localStorage.getItem('authToken');
+      const token = sessionStorage.getItem('authToken');
       await axios.post(`http://localhost:5001/api/users/message-requests/${requestId}/accept`, {}, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -83,7 +83,7 @@ const MessageRequests: React.FC = () => {
     try {
       setLoading(true);
       
-      const token = localStorage.getItem('authToken');
+      const token = sessionStorage.getItem('authToken');
       await axios.post(`http://localhost:5001/api/users/message-requests/${requestId}/reject`, {}, {
         headers: {
           Authorization: `Bearer ${token}`
